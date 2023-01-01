@@ -1,6 +1,6 @@
 import time
 import board
-from adafruit_pyportal import PyPortal
+from adafruit_pyportal import PyPortal, Graphics    
 from adafruit_esp32spi import adafruit_esp32spi
 import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 import adafruit_requests as requests
@@ -18,13 +18,11 @@ IO_KEY = secrets['aio_key']
 # Adafruit IO Feed
 IO_FEED = 'ab-weather.winddirection'
 
-HOURS = 24
-maxdatapoints = 64
+HOURS = 144  # how far back to go
+RESOLUTION = 120 # in minutes
+maxdatapoints = HOURS//(RESOLUTION//60)
 
-DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}".format(IO_USER,
-                                                                                  IO_FEED, IO_KEY)
-
-DATA_SOURCE += "&hours=144&resolution=120"
+DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&hours={3}&resolution={4}".format(IO_USER, IO_FEED, IO_KEY, HOURS , RESOLUTION)
 
 print(DATA_SOURCE)
 
@@ -51,10 +49,9 @@ print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
 socket.set_interface(esp)
 requests.set_socket(socket, esp) """
 
-
 cwd = ("/"+__file__).rsplit('/', 1)[0]
 pyportal = PyPortal(url=DATA_SOURCE,
-                   
+                    json_path = 'data',
                     status_neopixel=board.NEOPIXEL,
                     #default_bg=cwd+"/pyportal_email.bmp",
                     text_font=cwd+"/fonts/Helvetica-Oblique-17.bdf",
@@ -65,37 +62,49 @@ pyportal = PyPortal(url=DATA_SOURCE,
 
 # speed up projects with lots of text by preloading the font!
 pyportal.preload_font()
-sparkline1 = Sparkline(
-    width=400, height=200, max_items=72, x=20, y=50
-)
-my_group = displayio.Group()
-display = board.DISPLAY
 
+
+sparkline1 = Sparkline(
+    width=460, height=100, max_items=maxdatapoints, x=20, y=210
+)
+my_group = Graphics()   #my_group = displayio.Group()
+display = board.DISPLAY
+my_group.qrcode("https://io.adafruit.com/axelmagnus/dashboards/battlevel?kiosk=true", qr_size=5, x=308, y=2)
 # add the sparkline into my_group
-my_group.append(sparkline1)
+my_group.splash.append(sparkline1)
 
 # Add my_group (containing the sparkline) to the display
-display.show(my_group)
+my_group.display.show(my_group.splash)
 
 while True:
     display.auto_refresh = False
     try:
         print('Fetching Adafruit IO Feed Value..')
+        gc.collect()
+        print(gc.mem_free())
         value = pyportal.fetch() 
-        print("Response is", value)
+        #print("Response is", value)
         print("____________________________________________")
         #value = requests.get(DATA_SOURCE)
-        jsondata = json.loads(value)['data']
-        print(len(jsondata), "Filling sparkline")
-        for item in jsondata:
+        #jsondata = json.loads(value)
+        #print(len(jsondata), "Filling sparkline")
+        for item in value:
             #print(item[1])
             sparkline1.add_value(float(item[1]))
             #print(gc.mem_free())
-    except RuntimeError as e:
+        display.auto_refresh = True
+        #arkline1.update    
+        
+    except MemoryError as e:
         print("Some error occured, retrying! -", e)
-    
-    display.auto_refresh = True
-    #gc.collect()
+        jsondata = None
+        value = None
+        gc.collect()  
+
     print(gc.mem_free())
-    print(sparkline1.update)
-    time.sleep(60)
+
+    gc.collect()
+    pyportal.show_QR("https://io.adafruit.com/axelmagnus/dashboards/battlevel?kiosk=true", qr_size=5, x=290, y=0)
+    my_group.display.show(my_group.splash)
+    print(gc.mem_free())
+    time.sleep(10)
