@@ -24,7 +24,7 @@ maxdatapoints = 64
 DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}".format(IO_USER,
                                                                                   IO_FEED, IO_KEY)
 
-DATA_SOURCE += "&hours=4"
+DATA_SOURCE += "&hours=144&resolution=120"
 
 print(DATA_SOURCE)
 
@@ -66,7 +66,7 @@ pyportal = PyPortal(url=DATA_SOURCE,
 # speed up projects with lots of text by preloading the font!
 pyportal.preload_font()
 sparkline1 = Sparkline(
-    width=400, height=200, max_items=100, x=20, y=50
+    width=400, height=200, max_items=72, x=20, y=50
 )
 my_group = displayio.Group()
 display = board.DISPLAY
@@ -86,14 +86,16 @@ while True:
         print("____________________________________________")
         #value = requests.get(DATA_SOURCE)
         jsondata = json.loads(value)['data']
-        print(jsondata)
+        print(len(jsondata), "Filling sparkline")
         for item in jsondata:
-            print(item[1])
+            #print(item[1])
             sparkline1.add_value(float(item[1]))
+            #print(gc.mem_free())
     except RuntimeError as e:
         print("Some error occured, retrying! -", e)
     
     display.auto_refresh = True
     #gc.collect()
     print(gc.mem_free())
+    print(sparkline1.update)
     time.sleep(60)
