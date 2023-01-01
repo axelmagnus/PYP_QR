@@ -1,117 +1,139 @@
-#XL pyportal fetch feeds, show QR
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
+# class of sparklines in CircuitPython
+# created by Kevin Matocha - Copyright 2020 (C)
+
+# See the bottom for a code example using the `sparkline` Class.
+
+# # File: display_shapes_sparkline.py
+# A sparkline is a scrolling line graph, where any values added to sparkline using
+# `add_value` are plotted.
+#
+# The `sparkline` class creates an element suitable for adding to the display using
+# `display.show(mySparkline)`
+# or adding to a `displayio.Group` to be displayed.
+#
+# When creating the sparkline, identify the number of `max_items` that will be
+# included in the graph.
+# When additional elements are added to the sparkline and the number of items has
+# exceeded max_items, any excess values are removed from the left of the graph,
+# and new values are added to the right.
+
+
+# The following is an example that shows the
+
+# setup display
+# instance sparklines
+# add to the display
+# Loop the following steps:
+# 	add new values to sparkline `add_value`
+# 	update the sparklines `update`
 
 import time
+import random
 import board
-import busio
-from adafruit_pyportal import PyPortal
+import displayio
 
-from digitalio import DigitalInOut
-from adafruit_esp32spi import adafruit_esp32spi
-from adafruit_esp32spi import adafruit_esp32spi_wifimanager
-import adafruit_esp32spi.adafruit_esp32spi_socket as socket
-import neopixel
-import adafruit_minimqtt.adafruit_minimqtt as MQTT
-from adafruit_io.adafruit_io import IO_MQTT
-from secrets import secrets
 
-# the current working directory (where this file is)
-cwd = ("/"+__file__).rsplit('/', 1)[0]
+from adafruit_display_shapes.sparkline import Sparkline
 
-# a function that returns whatever is passed in
-def identity(x):
-    return x
+if "DISPLAY" not in dir(board):
+    # Setup the LCD display with driver
+    # You may need to change this to match the display driver for the chipset
+    # used on your display
+    from adafruit_ili9341 import ILI9341
 
-pyportal = PyPortal(status_neopixel=board.NEOPIXEL,
-                    default_bg=cwd + "/on_this_day_bg.bmp",
-                    text_font=cwd+"fonts/Arial-ItalicMT-17.bdf",
-                    # we do this so the date doesnt get commas
-                    text_transform=[identity]*6,
-                    text_position=((10, 70), (10, 100), (10, 130),
-                                   (60, 160), (105, 190), (10, 220)),
-                    text_color=(0xFFFFFF, 0xFFFFFF, 0xFFFFFF,
-                                0xFFFFFF, 0xFFFFFF, 0xFFFFFF),
-                    text_maxlen=(50, 50, 50, 50, 50, 50),  # cut off characters
-                    )
+    displayio.release_displays()
 
-# If you are using a board with pre-defined ESP32 Pins:
-esp32_cs = DigitalInOut(board.ESP_CS)
-esp32_ready = DigitalInOut(board.ESP_BUSY)
-esp32_reset = DigitalInOut(board.ESP_RESET)
-spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+    # setup the SPI bus
+    spi = board.SPI()
+    tft_cs = board.D9  # arbitrary, pin not used
+    tft_dc = board.D10
+    tft_backlight = board.D12
+    tft_reset = board.D11
 
-status_light = neopixel.NeoPixel(
-    board.NEOPIXEL, 1, brightness=0.2
-)  # Uncomment for Most Boards
-wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(
-    esp, secrets, status_light)
+    while not spi.try_lock():
+        spi.configure(baudrate=32000000)
 
-# Define callback functions which will be called when certain events happen.
-# pylint: disable=unused-argument
+    spi.unlock()
 
-def connected(client):
-    # Connected function will be called when the client is connected to Adafruit IO.
-    # This is a good place to subscribe to feed changes.  The client parameter
-    # passed to this function is the Adafruit IO MQTT client so you can make
-    # calls against it easily.
-    print("Connected to Adafruit IO!  Listening for DemoFeed changes...")
-    # Subscribe to changes on a feed named DemoFeed.
-    io.subscribe_to_time("iso")
+    display_bus = displayio.FourWire(
+        spi,
+        command=tft_dc,
+        chip_select=tft_cs,
+        reset=tft_reset,
+        baudrate=32000000,
+        polarity=1,
+        phase=1,
+    )
 
-# pylint: disable=unused-argument
+    print("spi.frequency: {}".format(spi.frequency))
 
-def message(client, feed_id, payload):
-    # Message function will be called when a subscribed feed has a new value.
-    # The feed_id parameter identifies the feed, and the payload parameter has
-    # the new value.
-    print("Feed {0} received new value: {1}".format(feed_id, payload))
+    # Number of pixels in the display
+    DISPLAY_WIDTH = 320
+    DISPLAY_HEIGHT = 240
 
-print("Connecting to WiFi: ", secrets["ssid"])
-wifi.connect()
-print("Connected!")
+    # create the display
+    display = ILI9341(
+        display_bus,
+        width=DISPLAY_WIDTH,
+        height=DISPLAY_HEIGHT,
+        # The rotation can be adjusted to match your configuration.
+        rotation=180,
+        auto_refresh=True,
+        native_frames_per_second=90,
+    )
 
-# Initialize MQTT interface with the esp interface
-MQTT.set_socket(socket, esp)
+    # reset the display to show nothing.
+    display.show(None)
+else:
+    # built-in display
+    display = board.DISPLAY
 
-# Initialize a new MQTT Client object
-mqtt_client = MQTT.MQTT(
-    broker="io.adafruit.com",
-    port=8883,
-    username=secrets["aio_username"],
-    password=secrets["aio_key"],
+##########################################
+# Create background bitmaps and sparklines
+##########################################
+
+# Baseline size of the sparkline chart, in pixels.
+chart_width = display.width
+chart_height = display.height
+
+# sparkline1 uses a vertical y range between 0 to 10 and will contain a
+# maximum of 40 items
+sparkline1 = Sparkline(
+    width=chart_width, height=chart_height, max_items=40, y_min=0, y_max=10, x=0, y=0
 )
 
-# Initialize an Adafruit IO MQTT Client
-io = IO_MQTT(mqtt_client)
+# Create a group to hold the sparkline and append the sparkline into the
+# group (my_group)
+#
+# Note: In cases where display elements will overlap, then the order the elements
+# are added to the group will set which is on top.  Latter elements are displayed
+# on top of former elements.
+my_group = displayio.Group()
 
-# Connect the callback methods defined above to Adafruit IO
-io.on_connect = connected
-io.on_message = message
+# add the sparkline into my_group
+my_group.append(sparkline1)
 
-# Connect to Adafruit IO
-print("Connecting to Adafruit IO...")
-io.connect()
 
-# create pyportal object w no data source (we'll feed it text later) 
-""" 
- pyportal = PyPortal(status_neopixel = board.NEOPIXEL,
-                    default_bg = cwd + "/on_this_day_bg.bmp",
-                    text_font = cwd+"fonts/Arial-ItalicMT-17.bdf",
-                    text_transform = [identity]*6,  # we do this so the date doesnt get commas
-                    text_position=((10, 70), (10, 100), (10, 130),(60, 160), (105, 190), (10, 220)),
-                    text_color=(0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF),
-                    text_maxlen=(50, 50, 50, 50, 50, 50), # cut off characters 
-                   )
- """
+# Add my_group (containing the sparkline) to the display
+display.show(my_group)
+
+# Start the main loop
 while True:
-    
-    # now = time.localtime()
-    #print("Current time:", now.tm_hour)
- 
-    io.loop()
 
-    # Make a QR code from web reference 
-    # pyportal.show_QR(bytearray("https://io.adafruit.com/axelmagnus/dashboards/battlevel?kiosk=true"), qr_size=5, x=300, y=10)
+    # turn off the auto_refresh of the display while modifying the sparkline
+    display.auto_refresh = False
 
-    # wait 10 minutes before running again
-    time.sleep(10*60)
+    # add_value: add a new value to a sparkline
+    # Note: The y-range for mySparkline1 is set to 0 to 10, so all these random
+    # values (between 0 and 10) will fit within the visible range of this sparkline
+    sparkline1.add_value(random.uniform(0, 10))
+
+    # turn the display auto_refresh back on
+    display.auto_refresh = True
+
+    # The display seems to be less jittery if a small sleep time is provided
+    # You can adjust this to see if it has any effect
+    time.sleep(0.01)
