@@ -25,3 +25,5 @@ my_group.display.show(my_group.splash)
     text_color=0xFFFFFF,
     text_wrap=35,  # wrap feed after 35 chars
     text_maxlen=160  """
+
+"https://io.adafruit.com/api/v2/axelmagnus/feeds/ab-weather.winddirection/data?X-AIO-Key=1a20315d078d4304bee799ce4b2af0e7&limit=1"
