@@ -1,11 +1,6 @@
 import time
 import board
 from adafruit_pyportal import PyPortal, Graphics
-"""
-from adafruit_esp32spi import adafruit_esp32spi
-import adafruit_esp32spi.adafruit_esp32spi_socket as socket
-import adafruit_requests as requests
-"""
 from digitalio import DigitalInOut
 import busio
 import json
@@ -19,18 +14,20 @@ import adafruit_datetime
 from adafruit_display_text.label import Label
 from adafruit_bitmap_font import bitmap_font
 import vectorio
+import adafruit_touchscreen
+from adafruit_button import Button
 
 # Adafruit IO Account
 IO_USER = secrets['aio_username']
 IO_KEY = secrets['aio_key']
 # Adafruit IO Feed
 feed_group = 'esp32s2tft'
-feed_info=(('temp',1, "C"),('percent',1, "%"),('voltage', 2, "V"),('hum', 1, "%")) #name number of decimals, unit
+feed_info=(('temp',1, "C"),('hum',0, "  %"),('voltage', 2, "V"),('percent', 1, "%")) #name number of decimals, unit
 IO_FEEDS=()
 for feed in feed_info:
+    #print(feed[0])
     IO_FEEDS+=feed_group+"."+feed[0],
-#print(feed_info[0][1])
-#print("%s %.*f %s" % (feed_info[0][0], feed_info[0][1], 3.18, feed_info[0][2]))
+sparkfeed_index = 0  # which to show on the graph
 
 cwd = ("/"+__file__).rsplit('/', 1)[0]
 pyportal = PyPortal(
@@ -40,103 +37,253 @@ pyportal = PyPortal(
     )
 
 # speed up projects with lots of text by preloading the font!pyportal.preload_font()
-pyportal.get_local_time()
-now = time.localtime()
-#print(now)
-#print(datetime.datetime.now().isoformat())
-ENDTIME  = "%04d-%02d-%02d%c" % (now.tm_year,now.tm_mon,now.tm_mday, "T") + "%04d:%02d:%02d%c" % (now.tm_hour, now.tm_min, now.tm_sec, "Z")
-#print(ENDTIME)
+
 HOURS = 144  # how far back to go
 RESOLUTION = 120  # in minutes
 maxdatapoints = HOURS//(RESOLUTION//60)
 #print(maxdatapoints)
 
-DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&end_time={3}&hours={4}&resolution={5}".format(
-    IO_USER, "ab-weather.winddirection", IO_KEY, ENDTIME, HOURS, RESOLUTION)
-
-#print(DATA_SOURCE)
 #pyportal.splash
-sparkline1 = Sparkline(
-    width=335, height=85, max_items=maxdatapoints, x=80, y=188, color=0x000000
-)
-# add the sparkline into my_group
-#pyportal.splash.append(my_group)
-# add the sparkline into my_group
-pyportal.splash.append(sparkline1)
+
 
 text_font = bitmap_font.load_font("/fonts/Helvetica-Oblique-17.bdf")
 text_font.load_glyphs(b'M1234567890o.%')
 DATACOLOR = 0x117766
 DATE_COLOR=0x334455
 DATA_LABELS = [
-    Label(text_font, text="{:.{}f} {}".format(feed_info[0][1], 0, feed_info[0][2]), color=DATACOLOR, x=85, y=40, scale=2, background_tight=True),
+    Label(text_font, text="{:.{}f} {}".format(0,feed_info[0][1],  feed_info[0][2]), color=DATACOLOR, x=85, y=40, scale=2, background_tight=True),
     Label(text_font, text="{:.{}f}{}".format(
-        feed_info[1][1], 44, feed_info[1][2]), color=DATACOLOR, x=200, y=40, scale=2),
+        0,feed_info[1][1],  feed_info[1][2]), color=DATACOLOR, x=190, y=40, scale=2),
     Label(text_font, text="{:.{}f} {}".format(
-        feed_info[2][1], 3, feed_info[2][2]), color=DATACOLOR, x=85, y=80, scale=2),
+        0,feed_info[2][1],  feed_info[2][2]), color=DATACOLOR, x=85, y=80, scale=2),
     Label(text_font, text="{:.{}f}{}".format(
-        feed_info[3][1], 0, feed_info[3][2]), color=DATACOLOR, x=200, y=80, scale=2)
+        0,feed_info[3][1],  feed_info[3][2]), color=DATACOLOR, x=190, y=80, scale=2)
 ]
 DATE_LABEL = [
-    Label(text_font, text="0000-00-00 00:00",color=DATE_COLOR,x=90, y=107),
-    Label(text_font, text="00-00-00 00:00", color=DATE_COLOR, x=88, y=130, scale=2)
+    Label(text_font, text="No data, fetching...",color=0x000000,x=90, y=168),
+    Label(text_font, text="000000 00:00", color=DATE_COLOR, x=88, y=130, scale=2)
 ]
 for label in DATA_LABELS + DATE_LABEL:
     pyportal.splash.append(label)
-my_group = Graphics()  # my_group = displayio.Group()
 display = board.DISPLAY
+
+buttons = []
+TAB_BUTTON_HEIGHT = 73
+TAB_BUTTON_WIDTH = 70
+# Main User Interface Buttons
+button_temp = Button(
+    x=0,  # Start after width of a button
+    y=display.height-2*TAB_BUTTON_HEIGHT,
+    width=TAB_BUTTON_WIDTH,
+    height=TAB_BUTTON_HEIGHT,
+    label="Temp",
+    label_font=text_font,
+    label_color=0xFF7E66,
+    fill_color=0x5C5B5C,
+    outline_color=0x767676,
+    selected_fill=0x1A1A1A,
+    selected_outline=0x2E2E2E,
+    selected_label=0x525252,
+)
+buttons.append(button_temp) 
+button_batt = Button(
+    x=0,  # Start at furthest left
+    y=display.height-TAB_BUTTON_HEIGHT,  # Start at top
+    width=TAB_BUTTON_WIDTH,  # Calculated width
+    height=TAB_BUTTON_HEIGHT,  # Static height
+    label="Battery",
+    label_font=text_font,
+    label_color=0xFF7E00,
+    fill_color=0x5C5B5C,
+    outline_color=0x767676,
+    selected_fill=0x1A1A1A,
+    selected_outline=0x2E2E2E,
+    selected_label=0x525252,
+)
+buttons.append(button_batt)  # adding this button to the buttons group
+TAB_BUTTON_HEIGHT = 44
+TAB_BUTTON_WIDTH = 180
+button_1w = Button(
+    x=70,  # Start at furthest left
+    y=display.height-TAB_BUTTON_HEIGHT,  # Start at top
+    width=TAB_BUTTON_WIDTH,  # Calculated width
+    height=TAB_BUTTON_HEIGHT,  # Static height
+    label="1 week",
+    label_font=text_font,
+    label_color=0xFF7E00,
+    fill_color=0x5C5B5C,
+    outline_color=0x767676,
+    selected_fill=0x1A1A1A,
+    selected_outline=0x2E2E2E,
+    selected_label=0x525252,
+)
+buttons.append(button_1w)
+button_48h = Button(
+    x=70+TAB_BUTTON_WIDTH,  # Start at furthest left
+    y=display.height-TAB_BUTTON_HEIGHT,  # Start at top
+    width=TAB_BUTTON_WIDTH,  # Calculated width
+    height=TAB_BUTTON_HEIGHT,  # Static height
+    label="48 h",
+    label_font=text_font,
+    label_color=0xFF7E00,
+    #fill_color=0xFFFFFF,
+    outline_color=0x767676,
+    selected_fill=0x1A1A1A,
+    selected_outline=0x2E2E2E,
+    selected_label=0x525252,
+)
+buttons.append(button_48h)
+ # adding this button to the buttons group
+# Add all of the main buttons to the splash Group
+for b in buttons:
+    pyportal.splash.append(b)
+
+# Initializes the display touch screen area
+ts = adafruit_touchscreen.Touchscreen(
+    board.TOUCH_XL, board.TOUCH_XR,
+    board.TOUCH_YD, board.TOUCH_YU,
+    calibration=((5200, 59000), (5800, 57000)),
+    size=(480, 320),
+)
+
+my_group = Graphics()  # my_group = displayio.Group()
+sparkline1 = Sparkline(width=335, height=85, max_items=200, x=80, y=188, color=0x000000)
+# add the sparkline into my_group
+pyportal.splash.append(sparkline1)
 # Add my_group (containing the sparkline) to the display
 display.show(pyportal.splash)
 #my_group.qrcode(
 pyportal.show_QR(
     "https://io.adafruit.com/axelmagnus/dashboards/battlevel?kiosk=true", qr_size=5, x=308, y=2)
 
+value = None
+pyportal.get_local_time()
+print(value)
+lastupdated = time.time()
+print(lastupdated)
+now = time.localtime()
 
 while True:
+    oldnow=now
     now = time.localtime()
     s = "%02d%02d%02d %02d:%02d" % (now.tm_year-2000, now.tm_mon, now.tm_mday,now.tm_hour, now.tm_min)
-    #print(current_time.tm_hour,":",current_time.tm_min)
-    DATE_LABEL[1].text=s ##time now
+    if oldnow.tm_min!=now.tm_min or not value or  0<=now.tm_sec<=3:
+        DATE_LABEL[1].text=s ##time now
+        ENDTIME = "%04d-%02d-%02d%c%04d:%02d:%02d%c" % (now.tm_year, now.tm_mon, now.tm_mday, "T",now.tm_hour, now.tm_min, now.tm_sec, "Z")
+    #print(ENDTIME)
     try:
-        print('Fetching Adafruit IO Feed Value..')
         gc.collect()
-        print(gc.mem_free())
-        for i, feed in enumerate(IO_FEEDS):
-            liveurl = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data?X-AIO-Key={2}&limit=1".format(IO_USER, feed, IO_KEY)
-            print(liveurl)
-            value = pyportal.network.fetch_data(liveurl, json_path=([0,'value'],[0,'created_at']))
+        #print(gc.mem_free())
+        if time.time() - lastupdated > 600 or not value:#fetch last data for labels
+            # Reset the current time
+            lastupdated = time.time()
+            print('Fetching Adafruit IO Feed Value..')
+            for i, feed in enumerate(IO_FEEDS): 
+                liveurl = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data?X-AIO-Key={2}&limit=1".format(IO_USER, feed, IO_KEY)
+                #print(liveurl)
+                value = pyportal.network.fetch_data(liveurl, json_path=([0,'value'],[0,'created_at']))
 
-            print("%.*f %s" % (feed_info[i][1], float(value[0]), feed_info[i][2]))
-            DATA_LABELS[i].text = "%.*f %s" % (
-                feed_info[i][1], float(value[0]), feed_info[i][2])
-        DATE_LABEL[0].text=value[1] ##time for last fecthed  value
-        value = pyportal.network.fetch_data(DATA_SOURCE, json_path=['data'])
-        print("Response is", value[0][-1][0])
-        print("number of rec's", len(value[0]))
-        print(gc.mem_free())
-        date_part, time_part = value[0][-1][0].split("T")
-        # Split the time part at the ":" character to get the hours and minutes
-        hours, minutes, seconds = time_part.split(":")
-        print(f"Last data point:{hours}:{minutes}")
-        print("____________________________________________")
-        #value = requests.get(DATA_SOURCE)
-        #jsondata = json.loads(value)
-        #print(len(jsondata), "Filling sparkline")
-        display.auto_refresh = False
-        for item in value[0]:
-            #print(item[1])
-            sparkline1.add_value(float(item[1]))
-            #print(gc.mem_free())
-        display.auto_refresh = True
-        #arkline1.update
+                print("%.*f %s" % (feed_info[i][1], float(value[0]), feed_info[i][2]))
+                DATA_LABELS[i].text = "%.*f %s" % (
+                    feed_info[i][1], float(value[0]), feed_info[i][2])
+            
+            date_part, time_part = value[1].split("T")
+            # Split the time part at the ":" character to get the hours and minutes
+            year,month,day=date_part.split("-")
+            hours, minutes, seconds = time_part.split(":")
+            adjhours= int(hours)- now.tm_isdst  #TZ or DST or something
+            # time for last fecthed  value
+            DATE_LABEL[0].text = f"Last data:{day}/{month} {adjhours}:{minutes}"
+
+            DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&end_time={3}&hours={4}&resolution={5}".format(
+                                    IO_USER, "esp32s2tft.voltage", IO_KEY, ENDTIME, HOURS, RESOLUTION)
+            print("done fetching")                
+        touch = ts.touch_point
+        
+        if touch:  # Only do this if the screen is touched
+            print(touch)
+            # loop with buttons using enumerate() to number each button group as i
+            for i, b in enumerate(buttons):
+                if b.contains(touch):  # Test each button to see if it was pressed
+                    if i == 0:
+                        print('Temp')
+                        sparkfeed_index=0
+                        sparkline1.min_value=0
+                        sparkline1.max_value = 25
+                    #print(DATA_SOURCE)                   
+                        while ts.touch_point:  # for debounce
+                             pass
+                    if i == 1:
+                        print('Battery')
+                        sparkline1.min_value = 3
+                        sparkline1.max_value = 4.2
+                        #DATE_LABEL[0].text = "Fetching Battery-data"
+                        sparkfeed_index =2
+                        while ts.touch_point:  # for debounce
+                            pass
+                    if i == 2:
+                        print('1 week')
+                        #DATE_LABEL[0].text = "Fetching data 1 week"
+                        HOURS=144
+                        RESOLUTION=120
+                        while ts.touch_point:  # for debounce
+                            pass
+                    if i == 3:
+                        print('48 h')
+                        #DATE_LABEL[0].text = "Fetching data 48 h"
+                        HOURS=48
+                        RESOLUTION=30
+                        while ts.touch_point:  # for debounce
+                            pass
+                    if 0<= i <= 3:
+                        DATE_LABEL[0].text = "Data from {} H.{} Res:{}".format(IO_FEEDS[sparkfeed_index], HOURS, RESOLUTION)                       
+                        DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&end_time={3}&hours={4}&resolution={5}".format(
+                            IO_USER, IO_FEEDS[sparkfeed_index], IO_KEY, ENDTIME, HOURS, RESOLUTION)
+                        print("_____________________Get sparkline data____________________")
+                        print(DATA_SOURCE)
+                        value = pyportal.network.fetch_data(DATA_SOURCE, json_path=['data'])
+                        print("Response is", value[0][-1][0])
+                        print("number of rec's", len(value[0]))
+                        print(gc.mem_free())
+                        DATE_LABEL[0].text = f"# of records: {len(value[0])}"
+                        
+                    
+                        display.auto_refresh = False
+                        """  
+                        pyportal.splash.remove(sparkline1)
+                        gc.collect()
+                        sparkline1 = Sparkline(
+                            width=335, height=85, max_items=len(value[0]), x=80, y=188, color=0x000000)
+                        """
+                        sparkline1.clear_values()    
+                        # add the sparkline into my_group
+                        print(gc.mem_free())
+                        for item in value[0]:
+                            print(item[1])
+                            sparkline1.add_value(float(item[1]))
+                            #print(gc.mem_free())
+                        #display.show(pyportal.splash)
+                        display.auto_refresh=True
+                        DATE_LABEL[0].text = f"Last data: {day}/{month} {adjhours}:{minutes} #:{len(value[0])}"
 
     except MemoryError as e:
         traceback.print_exception(type(e), e, e.__traceback__)
         print("Some error occured, retrying! -", e)
+        DATE_LABEL[0].text = "Memory error"
+        display.show(pyportal.splash)
+        display.auto_refresh=True
         jsondata = None
-        value = None
+        #value = None
         gc.collect()
+        print(gc.mem_free())
 
+    #gc.collect()
+    #  pyportal.show_QR("https://io.adafruit.com/axelmagnus/dashboards/battlevel?kiosk=true", qr_size=5, x=290, y=0)
+    # my_group.display.show(my_group.splash)
+    
+
+
+    """ 
     print(int(sparkline1.y_bottom))
     print(sparkline1.y_min)
     palette = displayio.Palette(1)
@@ -145,9 +292,5 @@ while True:
               (380, int(sparkline1.y_bottom))]
     polygon = vectorio.Polygon(pixel_shader=palette, points=points, x=0, y=0)
     pyportal.splash.append(polygon)
-    display.show(pyportal.splash)
-    gc.collect()
-    #  pyportal.show_QR("https://io.adafruit.com/axelmagnus/dashboards/battlevel?kiosk=true", qr_size=5, x=290, y=0)
-    # my_group.display.show(my_group.splash)
-    print(gc.mem_free())
-    time.sleep(60)
+    display.show(pyportal.splash) 
+    """
