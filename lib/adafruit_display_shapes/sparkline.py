@@ -108,6 +108,13 @@ class Sparkline(displayio.Group):
         for _ in range(len(self)):  # remove all items from the current group
             self.pop()
         self._spark_list = []  # empty the list
+        #XL edit
+        self.y_bottom = None
+        # y_bottom: The actual minimum value of the vertical scale, will be
+        # updated if autorange
+        self.y_top = None
+        # y_top: The actual minimum value of the vertical scale, will be
+        # updated if autorange
         self._redraw = True
 
     def add_value(self, value: float, update: bool = True) -> None:
@@ -136,13 +143,12 @@ class Sparkline(displayio.Group):
 
             if self.y_min is None:
                 self._redraw = self._redraw or value < self.y_bottom
-                self.y_bottom = (
-                    value if not self.y_bottom else min(value, self.y_bottom)
-                )
+                self.y_bottom = value if (not self.y_bottom and self.y_bottom!=0.0) else min(value, self.y_bottom)#XL edit not working if bottom= 0.0?
+                
             if self.y_max is None:
                 self._redraw = self._redraw or value > self.y_top
                 self.y_top = value if not self.y_top else max(value, self.y_top)
-
+            #print(f"selfbot {self.y_bottom}")
             if update:
                 self.update()
 

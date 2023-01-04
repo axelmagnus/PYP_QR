@@ -27,6 +27,7 @@ except ImportError:
     pass
 
 import displayio
+import gc
 
 __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_Display_Shapes.git"
@@ -65,9 +66,11 @@ class Polygon(displayio.TileGrid):
         # Find the largest and smallest X values to figure out width for bitmap
         width = max(xs) - min(xs) + 1
         height = max(ys) - min(ys) + 1
-
+        
         self._palette = displayio.Palette(3)
         self._palette.make_transparent(0)
+        #print(f"bm mem {gc.mem_free()}")
+        gc.collect()
         self._bitmap = displayio.Bitmap(width, height, 3)
 
         if outline is not None:

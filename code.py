@@ -78,8 +78,8 @@ button_temp = Button(
     height=TAB_BUTTON_HEIGHT,
     label="Temp",
     label_font=text_font,
-    label_color=0xFF7E66,
-    fill_color=0x5C5B5C,
+    label_color=0x000000,
+    fill_color= None, #0x5C5B5C,
     outline_color=0x767676,
     selected_fill=0x1A1A1A,
     selected_outline=0x2E2E2E,
@@ -93,8 +93,8 @@ button_batt = Button(
     height=TAB_BUTTON_HEIGHT,  # Static height
     label="Battery",
     label_font=text_font,
-    label_color=0xFF7E00,
-    fill_color=0x5C5B5C,
+    label_color=0xFFFFFF,
+    fill_color=None,  # 0x5C5B5C,
     outline_color=0x767676,
     selected_fill=0x1A1A1A,
     selected_outline=0x2E2E2E,
@@ -110,9 +110,9 @@ button_1w = Button(
     height=TAB_BUTTON_HEIGHT,  # Static height
     label="1 week",
     label_font=text_font,
-    label_color=0xFF7E00,
-    fill_color=0x5C5B5C,
-    outline_color=0x767676,
+    label_color=0x22FEEE,
+    fill_color=None,  # 0x5C5B5C,
+    outline_color=0xFF7676,
     selected_fill=0x1A1A1A,
     selected_outline=0x2E2E2E,
     selected_label=0x525252,
@@ -125,8 +125,8 @@ button_48h = Button(
     height=TAB_BUTTON_HEIGHT,  # Static height
     label="48 h",
     label_font=text_font,
-    label_color=0xFF7E00,
-    #fill_color=0xFFFFFF,
+    label_color=0xFFFE00,
+    fill_color=None,  # 0x5C5B5C,
     outline_color=0x767676,
     selected_fill=0x1A1A1A,
     selected_outline=0x2E2E2E,
@@ -146,7 +146,7 @@ ts = adafruit_touchscreen.Touchscreen(
     size=(480, 320),
 )
 
-my_group = Graphics()  # my_group = displayio.Group()
+#my_group = Graphics()  # my_group = displayio.Group()
 sparkline1 = Sparkline(width=335, height=85, max_items=200, x=80, y=188, color=0x000000)
 # add the sparkline into my_group
 pyportal.splash.append(sparkline1)
@@ -158,9 +158,7 @@ pyportal.show_QR(
 
 value = None
 pyportal.get_local_time()
-print(value)
-lastupdated = time.time()
-print(lastupdated)
+lastupdated = time.time()#print(lastupdated)
 now = time.localtime()
 
 while True:
@@ -174,7 +172,7 @@ while True:
     try:
         gc.collect()
         #print(gc.mem_free())
-        if time.time() - lastupdated > 600 or not value:#fetch last data for labels
+        if time.time() - lastupdated > 600: # or not value: #fetch last data for labels
             # Reset the current time
             lastupdated = time.time()
             print('Fetching Adafruit IO Feed Value..')
@@ -199,7 +197,6 @@ while True:
                                     IO_USER, "esp32s2tft.voltage", IO_KEY, ENDTIME, HOURS, RESOLUTION)
             print("done fetching")                
         touch = ts.touch_point
-        
         if touch:  # Only do this if the screen is touched
             print(touch)
             # loop with buttons using enumerate() to number each button group as i
@@ -232,7 +229,7 @@ while True:
                         print('48 h')
                         #DATE_LABEL[0].text = "Fetching data 48 h"
                         HOURS=48
-                        RESOLUTION=30
+                        RESOLUTION=60
                         while ts.touch_point:  # for debounce
                             pass
                     if 0<= i <= 3:
@@ -255,20 +252,68 @@ while True:
                         sparkline1 = Sparkline(
                             width=335, height=85, max_items=len(value[0]), x=80, y=188, color=0x000000)
                         """
-                        sparkline1.clear_values()    
+                        sparkline1.clear_values() # doesnt clear top and bottom"
+                        #print(sparkline1.y_bottom)
+                        #sparkline1.__init__()
+                        
+                        """
+                        update()
+                        init?
+                        sparkline1.y_bottom = 100.0
+                        sparkline1.y_top = 0.0
+                        """
+                       
+                        gc.collect()
+                        #sparkline1.y_top=0
+                        #sparkline1.y_bottom=30
                         # add the sparkline into my_group
                         print(gc.mem_free())
+                        
+                        #print(value[0])
+                        
+                        max_value = max(value[0], key=lambda x: float(x[1]))
+                        print("max",max_value[1])
+                        min_value = min(value[0], key=lambda x: float(x[1]))
+                        print("min", min_value[1])
+                        """
+                        
+                        sparkline1.y_top = float(max_value[1])
+
+                        sparkline1.y_bottom = float(min_value[1])
+                        """
                         for item in value[0]:
-                            print(item[1])
-                            sparkline1.add_value(float(item[1]))
-                            #print(gc.mem_free())
+                            #print(float(item[1]))
+                            sparkline1.add_value(float(item[1]), update=False)
+                            gc.collect()
                         #display.show(pyportal.splash)
+                        print(sparkline1.values())
+                        print("min spartlines", min(sparkline1.values()))
+                        print("max sparklines", max(sparkline1.values()))
+                        print("bottom top")
+                        print(sparkline1.y_bottom)
+                        #sparkline1.y_top = max(sparkline1.values())
+
+                        #sparkline1.y_bottom = min(sparkline1.values())
+                        print(sparkline1.y_top)
+                        #sparkline1.y_bottom = min(sparkline1.values())
+                        """
+                        sparkline1.y_max=15
+                        sparkline1.min_value=3
+                        sparkline1.max_value=20
+                        """
+                        sparkline1.update()
                         display.auto_refresh=True
-                        DATE_LABEL[0].text = f"Last data: {day}/{month} {adjhours}:{minutes} #:{len(value[0])}"
+                        DATE_LABEL[0].text = f"Data range (h): {len(value[0])*RESOLUTION/60}"
 
     except MemoryError as e:
         traceback.print_exception(type(e), e, e.__traceback__)
         print("Some error occured, retrying! -", e)
+        properties = dir(sparkline1)
+
+        # Print each attribute or method in the list
+        for property in properties:
+            val = getattr(sparkline1, property)
+            print(f"{property}: {val}")
         DATE_LABEL[0].text = "Memory error"
         display.show(pyportal.splash)
         display.auto_refresh=True
