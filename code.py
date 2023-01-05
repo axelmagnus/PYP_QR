@@ -22,7 +22,7 @@ IO_USER = secrets['aio_username']
 IO_KEY = secrets['aio_key']
 # Adafruit IO Feed
 feed_group = 'esp32s2tft'
-feed_info=(('temp',1, "C"),('hum',0, "  %"),('voltage', 2, "V"),('percent', 1, "%")) #name number of decimals, unit
+feed_info=(('temp',1, "C", 'Temp'),('hum',0, "  %",'Humidity'),('voltage', 2, "V", 'Voltage'),('percent', 1, "%",'Battery life')) #name number of decimals, unit, pretty name
 IO_FEEDS=()
 for feed in feed_info:
     #print(feed[0])
@@ -52,19 +52,23 @@ DATACOLOR = 0x117766
 DATE_COLOR=0x334455
 DATA_LABELS = [
     Label(text_font, text="{:.{}f} {}".format(0,feed_info[0][1],  feed_info[0][2]), color=DATACOLOR, x=85, y=40, scale=2, background_tight=True),
-    Label(text_font, text="{:.{}f}{}".format(
-        0,feed_info[1][1],  feed_info[1][2]), color=DATACOLOR, x=190, y=40, scale=2),
-    Label(text_font, text="{:.{}f} {}".format(
-        0,feed_info[2][1],  feed_info[2][2]), color=DATACOLOR, x=85, y=80, scale=2),
-    Label(text_font, text="{:.{}f}{}".format(
-        0,feed_info[3][1],  feed_info[3][2]), color=DATACOLOR, x=190, y=80, scale=2)
+    Label(text_font, text="{:.{}f}{}".format(0,feed_info[1][1],  feed_info[1]   [2]), color=DATACOLOR, x=190, y=40, scale=2),
+    Label(text_font, text="{:.{}f} {}".format(0,feed_info[2][1],  feed_info[2][2]), color=DATACOLOR, x=85, y=80, scale=2),
+    Label(text_font, text="{:.{}f}{}".format(0,feed_info[3][1],  feed_info[3][2]), color=DATACOLOR, x=190, y=80, scale=2)
 ]
-DATE_LABEL = [
-    Label(text_font, text="No data, fetching...",color=0x000000,x=90, y=168),
-    Label(text_font, text="000000 00:00", color=DATE_COLOR, x=88, y=130, scale=2)
-]
-for label in DATA_LABELS + DATE_LABEL:
+DATE_LABEL =Label(text_font, text="000000 00:00", color=DATE_COLOR, x=88, y=130, scale=2)
+STATUS_LABEL =Label(text_font, text="Fetching data...", color=0x000000, x=90, y=108)
+GRAPH_LABEL = Label(text_font, text="Temp: 48.0 h", color=0x000000, x=82, y=168)
+GRAPH_HI_LABEL = Label(text_font, text="23.1", color=0x000000, x=430, y=190) 
+GRAPH_LO_LABEL = Label(text_font, text="11.1", color=0x000000, x=430, y=263) 
+
+for label in DATA_LABELS:
     pyportal.splash.append(label)
+pyportal.splash.append(DATE_LABEL)
+pyportal.splash.append(STATUS_LABEL)
+pyportal.splash.append(GRAPH_LABEL)
+pyportal.splash.append(GRAPH_HI_LABEL)
+pyportal.splash.append(GRAPH_LO_LABEL)
 display = board.DISPLAY
 
 buttons = []
@@ -84,6 +88,7 @@ button_temp = Button(
     selected_fill=0x1A1A1A,
     selected_outline=0x2E2E2E,
     selected_label=0x525252,
+   # style = ROUNDRECT,
 )
 buttons.append(button_temp) 
 button_batt = Button(
@@ -99,6 +104,7 @@ button_batt = Button(
     selected_fill=0x1A1A1A,
     selected_outline=0x2E2E2E,
     selected_label=0x525252,
+    # style=ROUNDRECT,
 )
 buttons.append(button_batt)  # adding this button to the buttons group
 TAB_BUTTON_HEIGHT = 44
@@ -110,12 +116,12 @@ button_1w = Button(
     height=TAB_BUTTON_HEIGHT,  # Static height
     label="1 week",
     label_font=text_font,
-    label_color=0x22FEEE,
+    label_color=0x2E2E2E,
     fill_color=None,  # 0x5C5B5C,
     outline_color=0xFF7676,
     selected_fill=0x1A1A1A,
-    selected_outline=0x2E2E2E,
-    selected_label=0x525252,
+    selected_outline=0xFF2200,
+    selected_label=0x005252,
 )
 buttons.append(button_1w)
 button_48h = Button(
@@ -125,12 +131,12 @@ button_48h = Button(
     height=TAB_BUTTON_HEIGHT,  # Static height
     label="48 h",
     label_font=text_font,
-    label_color=0xFFFE00,
+    label_color=0x2E2E2E,
     fill_color=None,  # 0x5C5B5C,
-    outline_color=0x767676,
+    outline_color=0xFF7676,
     selected_fill=0x1A1A1A,
-    selected_outline=0x2E2E2E,
-    selected_label=0x525252,
+    selected_outline=0xFF2200,
+    selected_label=0x005252,
 )
 buttons.append(button_48h)
  # adding this button to the buttons group
@@ -166,7 +172,7 @@ while True:
     now = time.localtime()
     s = "%02d%02d%02d %02d:%02d" % (now.tm_year-2000, now.tm_mon, now.tm_mday,now.tm_hour, now.tm_min)
     if oldnow.tm_min!=now.tm_min or not value or  0<=now.tm_sec<=3:
-        DATE_LABEL[1].text=s ##time now
+        DATE_LABEL.text=s ##time now
         ENDTIME = "%04d-%02d-%02d%c%04d:%02d:%02d%c" % (now.tm_year, now.tm_mon, now.tm_mday, "T",now.tm_hour, now.tm_min, now.tm_sec, "Z")
     #print(ENDTIME)
     try:
@@ -191,7 +197,7 @@ while True:
             hours, minutes, seconds = time_part.split(":")
             adjhours= int(hours)- now.tm_isdst  #TZ or DST or something
             # time for last fecthed  value
-            DATE_LABEL[0].text = f"Last data:{day}/{month} {adjhours}:{minutes}"
+            STATUS_LABEL.text = f"Last data:{day}/{month} {adjhours}:{minutes}"
 
             DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&end_time={3}&hours={4}&resolution={5}".format(
                                     IO_USER, "esp32s2tft.voltage", IO_KEY, ENDTIME, HOURS, RESOLUTION)
@@ -205,35 +211,30 @@ while True:
                     if i == 0:
                         print('Temp')
                         sparkfeed_index=0
-                        sparkline1.min_value=0
-                        sparkline1.max_value = 25
-                    #print(DATA_SOURCE)                   
                         while ts.touch_point:  # for debounce
                              pass
                     if i == 1:
                         print('Battery')
-                        sparkline1.min_value = 3
-                        sparkline1.max_value = 4.2
-                        #DATE_LABEL[0].text = "Fetching Battery-data"
                         sparkfeed_index =2
                         while ts.touch_point:  # for debounce
                             pass
                     if i == 2:
                         print('1 week')
-                        #DATE_LABEL[0].text = "Fetching data 1 week"
+                        #GRAPH_LABEL.text = "Fetching data 1 week"
                         HOURS=144
                         RESOLUTION=120
                         while ts.touch_point:  # for debounce
                             pass
                     if i == 3:
                         print('48 h')
-                        #DATE_LABEL[0].text = "Fetching data 48 h"
+                        #GRAPH_LABEL.text = "Fetching data 48 h"
                         HOURS=48
-                        RESOLUTION=60
+                        RESOLUTION=30
                         while ts.touch_point:  # for debounce
                             pass
-                    if 0<= i <= 3:
-                        DATE_LABEL[0].text = "Data from {} H.{} Res:{}".format(IO_FEEDS[sparkfeed_index], HOURS, RESOLUTION)                       
+                    GRAPH_LABEL.text = "Fetching {} {} h".format(
+                            feed_info[sparkfeed_index][3], HOURS)
+                    if 0<= i <= 3:                       
                         DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&end_time={3}&hours={4}&resolution={5}".format(
                             IO_USER, IO_FEEDS[sparkfeed_index], IO_KEY, ENDTIME, HOURS, RESOLUTION)
                         print("_____________________Get sparkline data____________________")
@@ -242,7 +243,7 @@ while True:
                         print("Response is", value[0][-1][0])
                         print("number of rec's", len(value[0]))
                         print(gc.mem_free())
-                        DATE_LABEL[0].text = f"# of records: {len(value[0])}"
+                        GRAPH_LABEL.text = f"# of records: {len(value[0])}"
                         
                     
                         display.auto_refresh = False
@@ -288,7 +289,11 @@ while True:
                         #display.show(pyportal.splash)
                         print(sparkline1.values())
                         print("min spartlines", min(sparkline1.values()))
+                        GRAPH_LO_LABEL.text = f"%.*f %s" % (
+                            feed_info[sparkfeed_index][1], min(sparkline1.values()), feed_info[sparkfeed_index][2])
                         print("max sparklines", max(sparkline1.values()))
+                        GRAPH_HI_LABEL.text = f"%.*f %s" % (
+                            feed_info[sparkfeed_index][1], max(sparkline1.values()), feed_info[sparkfeed_index][2])
                         print("bottom top")
                         print(sparkline1.y_bottom)
                         #sparkline1.y_top = max(sparkline1.values())
@@ -303,7 +308,8 @@ while True:
                         """
                         sparkline1.update()
                         display.auto_refresh=True
-                        DATE_LABEL[0].text = f"Data range (h): {len(value[0])*RESOLUTION/60}"
+                        GRAPH_LABEL.text = "{}: {} h Res:{} h #:{:d}".format(
+                            feed_info[sparkfeed_index][3], HOURS, RESOLUTION/60, len(value[0]))
 
     except MemoryError as e:
         traceback.print_exception(type(e), e, e.__traceback__)
@@ -314,7 +320,7 @@ while True:
         for property in properties:
             val = getattr(sparkline1, property)
             print(f"{property}: {val}")
-        DATE_LABEL[0].text = "Memory error"
+        GRAPH_LABEL.text = "Memory error"
         display.show(pyportal.splash)
         display.auto_refresh=True
         jsondata = None
