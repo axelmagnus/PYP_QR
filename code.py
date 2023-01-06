@@ -77,6 +77,7 @@ pyportal.splash.append(GRAPH_HI_LABEL)
 pyportal.splash.append(GRAPH_LO_LABEL)
 display = board.DISPLAY
 
+
 buttons = []
 TAB_BUTTON_HEIGHT = 73
 TAB_BUTTON_WIDTH = 70
@@ -161,7 +162,6 @@ button_48h = Button(
     selected_label=0x005252,
 )
 buttons.append(button_48h)
-# adding this button to the buttons group
 # Add all of the main buttons to the splash Group
 for b in buttons:
     pyportal.splash.append(b)
@@ -218,7 +218,6 @@ while True:
                       (feed_info[i][1], float(value[0]), feed_info[i][2]))
                 DATA_LABELS[i].text = "%.*f %s" % (
                     feed_info[i][1], float(value[0]), feed_info[i][2])
-
             # time for last fecthed  value
             lastupdated = datetime.fromisoformat(value[1][0:-1])
             date_part, time_part = value[1].split("T")
