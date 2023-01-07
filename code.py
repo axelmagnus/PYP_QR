@@ -227,6 +227,7 @@ while True:
                 DATA_LABELS[i].text = "%.*f %s" % (
                     feed_info[i][1], float(value[0]), feed_info[i][2])
             # time for last fecthed  value
+            lastupdated = min(lastupdated, datetime.now())#either it has been updaated from feed, firstrun or its now
             print(lastupdated)
             date_part, time_part = value[1].split("T")
             year, month, day = date_part.split("-")
