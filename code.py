@@ -33,6 +33,8 @@ HOURS = 144  # how far back to go
 RESOLUTION = 120  # in minutes 1,2 30, 60, 120
 #maxdatapoints = HOURS//(RESOLUTION//60)# is it used?
 
+soundBeep = "/sounds/beep.wav"
+
 # Adafruit IO Feeds
 feed_group = 'esp32s2tft'
 # feedname, number of decimals, unit, pretty name
@@ -122,11 +124,11 @@ button_charge = Button(
     label=feed_info[3][3],
     label_font=text_font,
     label_color=0xFFF499,
-    fill_color=None,  # 0x5C5B5C,
+    fill_color=0x5C5B5C, #None,  # 0x5C5B5C,
     outline_color=None,
     selected_fill=0x1A1A1A,
     selected_outline=0x2E2E2E,
-    selected_label=0x525252,
+    #selected_label=0x525252,
     # style=ROUNDRECT,
 )
 buttons.append(button_charge)  # adding this button to the buttons group
@@ -205,7 +207,7 @@ while True:
     try:
         gc.collect()
         #print((datetime.now() - lastupdated).total_seconds()-3600)#-3600 because utc, update feeds:
-        if (datetime.now() - lastupdated).total_seconds()-3600 > REFRESH_TIME or firstrun: 
+        if (datetime.now() - lastupdated).total_seconds()-3600 > REFRESH_TIME + 1 or firstrun: 
             lastupdated = datetime.now()
             STATUS_LABEL.text ='Fetching data...'
             for i, feed in enumerate(IO_FEEDS):
@@ -214,7 +216,7 @@ while True:
                 #print(liveurl)
                 value = pyportal.network.fetch_data(
                     liveurl, json_path=([0, 'value'], [0, 'created_at']))
-
+                pyportal.play_file(soundBeep)
                 print("%.*f %s" %
                       (feed_info[i][1], float(value[0]), feed_info[i][2]))
                 DATA_LABELS[i].text = "%.*f %s" % (
@@ -236,17 +238,17 @@ while True:
         
         if touch:  # Only do this if the screen is touched, or fill buttons with names
             # loop with buttons using enumerate() to number each button group as i
-            print(touch)
+            pyportal.play_file(soundBeep)
             for i, b in enumerate(buttons):
                 if i < 3:
                     b.label_color = 0xFFF499
                 if b.contains(touch):  # Test each button to see if it was pressed, set data source aand label
-                    sparkfeed_index=0       #init with temp, for firstrun
                     if i<3:
                         b.label_color=0x000000  #indicate what feed is pressed/shown
                     if i == 0:
                         print('Temp')
                         sparkfeed_index = 0
+                        #b.label_color = 0x000000  # indicate what feed is pressed/shown
                         while ts.touch_point:  # for debounce
                             pass
                     if i == 1:
@@ -356,6 +358,9 @@ while True:
                     display.auto_refresh = True
                     GRAPH_LABEL.text = "{}: {} h R:{} h #:{:d}".format(
                         feed_info[sparkfeed_index][3], len(value[0])*RESOLUTION/60, RESOLUTION/60, len(value[0]))
+                else:
+                    if i>2:
+                        b.label_color = 0xFFF499
         firstrun=False
     except MemoryError as e:
         traceback.print_exception(type(e), e, e.__traceback__)
