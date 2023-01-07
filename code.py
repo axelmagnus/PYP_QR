@@ -207,7 +207,7 @@ while True:
     try:
         gc.collect()
         #print((datetime.now() - lastupdated).total_seconds()-3600)#-3600 because utc, update feeds:
-        if (datetime.now() - lastupdated).total_seconds()-3600 > REFRESH_TIME + 1 or firstrun: 
+        if (datetime.now() - lastupdated).total_seconds()-3600 > REFRESH_TIME +1 or firstrun: 
             lastupdated = datetime.now()
             STATUS_LABEL.text ='Fetching data...'
             for i, feed in enumerate(IO_FEEDS):
@@ -222,7 +222,8 @@ while True:
                 DATA_LABELS[i].text = "%.*f %s" % (
                     feed_info[i][1], float(value[0]), feed_info[i][2])
             # time for last fecthed  value
-            lastupdated = datetime.fromisoformat(value[1][0:-1])
+            if firstrun:#get last data points time and sync updates
+                lastupdated = datetime.fromisoformat(value[1][0:-1])
             date_part, time_part = value[1].split("T")
             year, month, day = date_part.split("-")
             hours, minutes, seconds = time_part[0:-1].split(":")
@@ -238,12 +239,12 @@ while True:
         
         if touch:  # Only do this if the screen is touched, or fill buttons with names
             # loop with buttons using enumerate() to number each button group as i
-            pyportal.play_file(soundBeep)
             for i, b in enumerate(buttons):
                 if i < 3:
                     b.label_color = 0xFFF499
                 if b.contains(touch):  # Test each button to see if it was pressed, set data source aand label
-                    if i<3:
+                    pyportal.play_file(soundBeep)
+                    if i < 3:                                            
                         b.label_color=0x000000  #indicate what feed is pressed/shown
                     if i == 0:
                         print('Temp')
@@ -362,19 +363,10 @@ while True:
                     if i>2:
                         b.label_color = 0xFFF499
         firstrun=False
-    except MemoryError as e:
+    except Exception as e:
         traceback.print_exception(type(e), e, e.__traceback__)
         print("Some error occured, retrying! -", e)
-        properties = dir(sparkline1)
-
-        # Print each attribute or method in the list
-        for property in properties:
-            val = getattr(sparkline1, property)
-            print(f"{property}: {val}")
         GRAPH_LABEL.text = "Memory error"
-        display.show(pyportal.splash)
-        display.auto_refresh = True
-        jsondata = None
         #value = None
         gc.collect()
         print(gc.mem_free())
@@ -382,9 +374,7 @@ while True:
     #gc.collect()
     #  pyportal.show_QR("https://io.adafruit.com/axelmagnus/dashboards/battlevel?kiosk=true", qr_size=5, x=290, y=0)
     # my_group.display.show(my_group.splash)
-
-    """ 
-    print(int(sparkline1.y_bottom))
+    """ print(int(sparkline1.y_bottom))
     print(sparkline1.y_min)
     palette = displayio.Palette(1)
     palette[0] = 0x125690
@@ -393,4 +383,4 @@ while True:
     polygon = vectorio.Polygon(pixel_shader=palette, points=points, x=0, y=0)
     pyportal.splash.append(polygon)
     display.show(pyportal.splash) 
-    """
+ """
