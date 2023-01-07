@@ -143,7 +143,7 @@ class Sparkline(displayio.Group):
 
             if self.y_min is None:
                 self._redraw = self._redraw or value < self.y_bottom
-                self.y_bottom = value if (not self.y_bottom and self.y_bottom!=0.0) else min(value, self.y_bottom)#XL edit not working if bottom= 0.0?
+                self.y_bottom = value if (not self.y_bottom and self.y_bottom!=0.0) else min(value, self.y_bottom)#XL edit not remembering if bottom= 0.0?
                 
             if self.y_max is None:
                 self._redraw = self._redraw or value > self.y_top

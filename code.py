@@ -11,7 +11,7 @@ import gc
 import traceback
 import time
 #import adafruit_datetime
-from adafruit_datetime import datetime
+from adafruit_datetime import datetime, timedelta
 from adafruit_display_text.label import Label
 from adafruit_bitmap_font import bitmap_font
 import vectorio
@@ -62,7 +62,7 @@ DATA_LABELS = [
         0, feed_info[3][1],  feed_info[3][2]), color=DATACOLOR, x=190, y=80, scale=2)
 ]
 DATE_LABEL = Label(text_font, text="000000 00:00",
-                   color=DATE_COLOR, x=88, y=130, scale=1)
+                   color=DATE_COLOR, x=88, y=130, scale=2)
 STATUS_LABEL = Label(text_font, text=f"SSID: {secrets['ssid']}",
                      color=0x000000, x=90, y=108)
 GRAPH_LABEL = Label(text_font, text="Temp: 48.0 h",
@@ -197,8 +197,8 @@ firstrun=True
 while True:
     oldnow = now
     now = time.localtime()
-    s = "%02d%02d%02d %02d:%02d:%02d" % (
-        now.tm_year-2000, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec)
+    s = "%02d%02d%02d %02d:%02d" % (
+        now.tm_year-2000, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min)
     if oldnow.tm_sec != now.tm_sec or firstrun:#update time to fetch data from
         DATE_LABEL.text = s  # time now
         ENDTIME = "%04d-%02d-%02d%c%04d:%02d:%02d%c" % (
@@ -206,8 +206,10 @@ while True:
     #nu = datetime.now()  # to use for latest publlished data
     try:
         gc.collect()
-        #print((datetime.now() - lastupdated).total_seconds()-3600)#-3600 because utc, update feeds:
-        if (datetime.now() - lastupdated).total_seconds()-3600 > REFRESH_TIME +1 or firstrun: 
+        #print((datetime.now() - lastupdated).total_seconds()-3600)
+        # #-3600 because utc, update feeds:
+       
+        if (datetime.now() - lastupdated).total_seconds() > REFRESH_TIME or firstrun: 
             lastupdated = datetime.now()
             STATUS_LABEL.text ='Fetching data...'
             for i, feed in enumerate(IO_FEEDS):
@@ -216,21 +218,24 @@ while True:
                 #print(liveurl)
                 value = pyportal.network.fetch_data(
                     liveurl, json_path=([0, 'value'], [0, 'created_at']))
-                pyportal.play_file(soundBeep)
+                if firstrun:#get last data points time and sync updates
+                    pyportal.play_file(soundBeep)
+                    lastupdated = datetime.fromisoformat(value[1][0:-1])
+                    lastupdated += timedelta(minutes=60) #feed  time is one hour behind
                 print("%.*f %s" %
                       (feed_info[i][1], float(value[0]), feed_info[i][2]))
                 DATA_LABELS[i].text = "%.*f %s" % (
                     feed_info[i][1], float(value[0]), feed_info[i][2])
             # time for last fecthed  value
-            if firstrun:#get last data points time and sync updates
-                lastupdated = datetime.fromisoformat(value[1][0:-1])
+            print(lastupdated)
             date_part, time_part = value[1].split("T")
             year, month, day = date_part.split("-")
             hours, minutes, seconds = time_part[0:-1].split(":")
             #seconds = seconds[0:-1]
-            adjhours = int(hours) - now.tm_isdst  # TZ or DST or something
+            adjhours = int(hours) + 1  # TZ or DST or something
             STATUS_LABEL.text = f"Last data: {day}/{month} {adjhours}:{minutes}:{seconds}"
             print("done fetching")
+            print("last upd", lastupdated, "date now", datetime.now())
         
         if firstrun:
             touch = (62, 122, 10514) #init with temp
@@ -242,7 +247,7 @@ while True:
             for i, b in enumerate(buttons):
                 if i < 3:
                     b.label_color = 0xFFF499
-                if b.contains(touch):  # Test each button to see if it was pressed, set data source aand label
+                if b.contains(touch):  # Test each button to see if it was pressed, set data source aand label and fetch data for  graph
                     pyportal.play_file(soundBeep)
                     if i < 3:                                            
                         b.label_color=0x000000  #indicate what feed is pressed/shown
@@ -290,9 +295,11 @@ while True:
                     print(DATA_SOURCE)
                     value = pyportal.network.fetch_data(
                         DATA_SOURCE, json_path=['data'])
+                    """ 
                     print("Response is", value[0][-1][0])
                     print("number of rec's", len(value[0]))
                     print(gc.mem_free())
+                     """
                     GRAPH_LABEL.text = f"# of records: {len(value[0])}"
 
                     display.auto_refresh = False
@@ -317,14 +324,14 @@ while True:
                     #sparkline1.y_top=0
                     #sparkline1.y_bottom=30
                     # add the sparkline into my_group
-                    print(gc.mem_free())
+                    #print(gc.mem_free())
 
                     #print(value[0])
 
                     max_value = max(value[0], key=lambda x: float(x[1]))
-                    print("max", max_value[1])
+                    #print("max", max_value[1])
                     min_value = min(value[0], key=lambda x: float(x[1]))
-                    print("min", min_value[1])
+                    #print("min", min_value[1])
                     """
                     
                     sparkline1.y_top = float(max_value[1])
@@ -336,19 +343,19 @@ while True:
                         sparkline1.add_value(float(item[1]), update=False)
                         gc.collect()
                     #display.show(pyportal.splash)
-                    print(sparkline1.values())
+                   # print(sparkline1.values())
                     print("min spartlines", min(sparkline1.values()))
                     GRAPH_LO_LABEL.text = f"%.*f %s" % (
                         feed_info[sparkfeed_index][1], min(sparkline1.values()), feed_info[sparkfeed_index][2])
                     print("max sparklines", max(sparkline1.values()))
                     GRAPH_HI_LABEL.text = f"%.*f %s" % (
                         feed_info[sparkfeed_index][1], max(sparkline1.values()), feed_info[sparkfeed_index][2])
-                    print("bottom top")
-                    print(sparkline1.y_bottom)
+                    #print("bottom top")
+                    #print(sparkline1.y_bottom)
                     #sparkline1.y_top = max(sparkline1.values())
 
                     #sparkline1.y_bottom = min(sparkline1.values())
-                    print(sparkline1.y_top)
+                   #print(sparkline1.y_top)
                     #sparkline1.y_bottom = min(sparkline1.values())
                     """
                     sparkline1.y_max=15
@@ -384,3 +391,4 @@ while True:
     pyportal.splash.append(polygon)
     display.show(pyportal.splash) 
  """
+sparkline.add_value()
