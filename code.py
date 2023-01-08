@@ -11,7 +11,7 @@ import gc
 import traceback
 import time
 #import adafruit_datetime
-from adafruit_datetime import datetime, timedelta
+from adafruit_datetime import datetime, timedelta, _MONTHNAMES, _DAYNAMES
 from adafruit_display_text.label import Label
 from adafruit_bitmap_font import bitmap_font
 import vectorio
@@ -197,8 +197,8 @@ firstrun=True
 while True:
     oldnow = now
     now = time.localtime()
-    s = "%02d%02d%02d %02d:%02d" % (
-        now.tm_year-2000, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min)
+    s = "%d %s %d:%02d:%02d" % (
+        now.tm_mday, _MONTHNAMES[now.tm_mon], now.tm_hour, now.tm_min, now.tm_sec)
     if oldnow.tm_sec != now.tm_sec or firstrun:#update time to fetch data from
         DATE_LABEL.text = s  # time now
         ENDTIME = "%04d-%02d-%02d%c%04d:%02d:%02d%c" % (
@@ -206,11 +206,11 @@ while True:
     #nu = datetime.now()  # to use for latest publlished data
     try:
         gc.collect()
-        #print((datetime.now() - lastupdated).total_seconds()-3600)
-        # #-3600 because utc, update feeds:
+        #+ 5 so if thereis offset issues
        
-        if (datetime.now() - lastupdated).total_seconds() > REFRESH_TIME or firstrun: 
+        if (datetime.now() - lastupdated).total_seconds() > REFRESH_TIME  + 5 or firstrun: 
             lastupdated = datetime.now()
+            print("if...",lastupdated)
             STATUS_LABEL.text ='Fetching data...'
             for i, feed in enumerate(IO_FEEDS):
                 liveurl = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data?X-AIO-Key={2}&limit=1".format(
@@ -220,23 +220,39 @@ while True:
                     liveurl, json_path=([0, 'value'], [0, 'created_at']))
                 if firstrun:#get last data points time and sync updates
                     pyportal.play_file(soundBeep)
-                    lastupdated = datetime.fromisoformat(value[1][0:-1])
-                    lastupdated += timedelta(minutes=60) #feed  time is one hour behind
-                print("%.*f %s" %
-                      (feed_info[i][1], float(value[0]), feed_info[i][2]))
+                #print("%.*f %s" %
+                #     (feed_info[i][1], float(value[0]), feed_info[i][2]))
+
+                lastdata = datetime.fromisoformat(value[1][0:-1])
+                # feed  time is one hour behind
+                lastdata += timedelta(minutes=60)
+                # if feed is alive, use it for sync.
+                if lastdata > lastupdated - timedelta(seconds=REFRESH_TIME):
+                    lastupdated = lastdata
+                print("ld", lastdata)
                 DATA_LABELS[i].text = "%.*f %s" % (
-                    feed_info[i][1], float(value[0]), feed_info[i][2])
-            # time for last fecthed  value
-            lastupdated = min(lastupdated, datetime.now())#either it has been updaated from feed, firstrun or its now
-            print(lastupdated)
+                feed_info[i][1], float(value[0]), feed_info[i][2])
             date_part, time_part = value[1].split("T")
             year, month, day = date_part.split("-")
             hours, minutes, seconds = time_part[0:-1].split(":")
             #seconds = seconds[0:-1]
             adjhours = int(hours) + 1  # TZ or DST or something
-            STATUS_LABEL.text = f"Last data: {day}/{month} {adjhours}:{minutes}:{seconds}"
-            print("done fetching")
-            print("last upd", lastupdated, "date now", datetime.now())
+            STATUS_LABEL.text = "Last data: %d %s %d:%02d:%02d" % (
+                lastdata.day,
+                _MONTHNAMES[lastdata.month],
+                lastdata.hour,
+                lastdata.minute,
+                lastdata.second,
+            )
+            print(_MONTHNAMES[lastdata.month])
+            
+            #%1d/%s %2d:%2d:%2d" % (
+             #   lastdata.day, _MONTHNAMES[lastdata.month], lastdata.hour, #lastdata.minute, lastdata.second)
+            print("Last data: %2d/%d %02d:%2d:%01d" % (lastdata.day, lastdata.month, lastdata.hour, lastdata.minute,lastdata.second))
+                
+               
+            # time for last fecthed  value
+            print("last upd", lastupdated, "date now", datetime.now())#lastupdated = min(lastupdated, datetime.now())#either it has been updaated from feed, firstrun or its now
         
         if firstrun:
             touch = (62, 122, 10514) #init with temp
