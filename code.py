@@ -394,6 +394,8 @@ while True:
         #value = None
         gc.collect()
         print(gc.mem_free())
+        import microcontroller
+        microcontroller.reset()
 
     #gc.collect()
     #  pyportal.show_QR("https://io.adafruit.com/axelmagnus/dashboards/battlevel?kiosk=true", qr_size=5, x=290, y=0)
