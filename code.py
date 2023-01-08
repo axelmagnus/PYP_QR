@@ -79,7 +79,6 @@ pyportal.splash.append(GRAPH_HI_LABEL)
 pyportal.splash.append(GRAPH_LO_LABEL)
 display = board.DISPLAY
 
-
 buttons = []
 TAB_BUTTON_HEIGHT = 73
 TAB_BUTTON_WIDTH = 70
@@ -89,6 +88,7 @@ button_temp = Button(
     y=display.height-3*TAB_BUTTON_HEIGHT,
     width=TAB_BUTTON_WIDTH,
     height=TAB_BUTTON_HEIGHT,
+    style=Button.ROUNDRECT,
     label=feed_info[0][3],
     label_font=text_font,
     label_color=0xFF00FF,
@@ -105,6 +105,7 @@ button_batt = Button(
     y=display.height-2*TAB_BUTTON_HEIGHT,  # Start at top
     width=TAB_BUTTON_WIDTH,  # Calculated width
     height=TAB_BUTTON_HEIGHT,
+    style=Button.ROUNDRECT,
     label=feed_info[2][3],
     label_font=text_font,
     label_color=0xFFF499,
@@ -121,6 +122,7 @@ button_charge = Button(
     y=display.height-TAB_BUTTON_HEIGHT,  # Start at top
     width=TAB_BUTTON_WIDTH,  # Calculated width
     height=TAB_BUTTON_HEIGHT,  # Static height
+    style=Button.ROUNDRECT,
     label=feed_info[3][3],
     label_font=text_font,
     label_color=0xFFF499,
@@ -139,6 +141,7 @@ button_1w = Button(
     y=display.height-TAB_BUTTON_HEIGHT,  # Start at top
     width=TAB_BUTTON_WIDTH,  # Calculated width
     height=TAB_BUTTON_HEIGHT,  # Static height
+    style=Button.ROUNDRECT,
     label="1 week",
     label_font=text_font,
     label_color=0xFFF499,
@@ -154,6 +157,7 @@ button_48h = Button(
     y=display.height-TAB_BUTTON_HEIGHT,  # Start at top
     width=TAB_BUTTON_WIDTH,  # Calculated width
     height=TAB_BUTTON_HEIGHT,  # Static height
+    style=Button.ROUNDRECT,
     label="48 h",
     label_font=text_font,
     label_color=0xFFF499,
@@ -164,8 +168,24 @@ button_48h = Button(
     selected_label=0x005252,
 )
 buttons.append(button_48h)
+button_reload = Button(
+    x=430,  # Start at furthest left
+    y=display.height-TAB_BUTTON_HEIGHT,  # Start at top
+    width=60,  # Calculated width
+    height=TAB_BUTTON_HEIGHT,  # Static height
+    label="Update",
+    label_font=text_font,
+    label_color=0xFFF499,
+    fill_color=None,  # 0x5C5B5C,
+    outline_color=0xFF7676,
+    selected_fill=0x1A1A1A,
+    selected_outline=0xFF2200,
+    selected_label=0x005252,
+)
+buttons.append(button_reload)
 # Add all of the main buttons to the splash Group
 for b in buttons:
+    #b.style = Button.ROUNDRECT,
     pyportal.splash.append(b)
 
 # Initializes the display touch screen area
@@ -193,6 +213,7 @@ lastupdated = datetime.now()
 print("starting")
 now = time.localtime()
 firstrun=True
+reload=False #for reload button
 
 while True:
     oldnow = now
@@ -208,7 +229,7 @@ while True:
         gc.collect()
         #+ 5 so if thereis offset issues
        
-        if (datetime.now() - lastupdated).total_seconds() > REFRESH_TIME  + 5 or firstrun: 
+        if (datetime.now() - lastupdated).total_seconds() > REFRESH_TIME  + 5 or firstrun or reload: 
             lastupdated = datetime.now()
             print("if...",lastupdated)
             STATUS_LABEL.text ='Fetching data...'
@@ -253,6 +274,7 @@ while True:
                
             # time for last fecthed  value
             print("last upd", lastupdated, "date now", datetime.now())#lastupdated = min(lastupdated, datetime.now())#either it has been updaated from feed, firstrun or its now
+            reload=False
         
         if firstrun:
             touch = (62, 122, 10514) #init with temp
@@ -302,87 +324,89 @@ while True:
                         buttons[3].fill_color = 0xBB0033
                         while ts.touch_point:  # for debounce
                             pass
-            
-                    GRAPH_LABEL.text = "Fetching {} {} h".format(
-                                feed_info[sparkfeed_index][3], HOURS)
-                    DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&end_time={3}&hours={4}&resolution={5}".format(
-                        IO_USER, IO_FEEDS[sparkfeed_index], IO_KEY, ENDTIME, HOURS, RESOLUTION)
-                    print(
-                        "_____________________Get sparkline data____________________")
-                    print(DATA_SOURCE)
-                    value = pyportal.network.fetch_data(
-                        DATA_SOURCE, json_path=['data'])
-                    """ 
-                    print("Response is", value[0][-1][0])
-                    print("number of rec's", len(value[0]))
-                    print(gc.mem_free())
-                     """
-                    GRAPH_LABEL.text = f"# of records: {len(value[0])}"
+                    if i == 5: #Reload datalabels
+                        reload=True
+                    if 0<= i <=4:#Update sparkline
+                        GRAPH_LABEL.text = "Fetching {} {} h".format(
+                                    feed_info[sparkfeed_index][3], HOURS)
+                        DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&end_time={3}&hours={4}&resolution={5}".format(
+                            IO_USER, IO_FEEDS[sparkfeed_index], IO_KEY, ENDTIME, HOURS, RESOLUTION)
+                        print(
+                            "_____________________Get sparkline data____________________")
+                        print(DATA_SOURCE)
+                        value = pyportal.network.fetch_data(
+                            DATA_SOURCE, json_path=['data'])
+                        """ 
+                        print("Response is", value[0][-1][0])
+                        print("number of rec's", len(value[0]))
+                        print(gc.mem_free())
+                        """
+                        GRAPH_LABEL.text = f"# of records: {len(value[0])}"
 
-                    display.auto_refresh = False
-                    """  
-                    pyportal.splash.remove(sparkline1)
-                    gc.collect()
-                    sparkline1 = Sparkline(
-                        width=335, height=85, max_items=len(value[0]), x=80, y=188, color=0x000000)
-                    """
-                    sparkline1.clear_values()  # doesnt clear top and bottom"
-                    #print(sparkline1.y_bottom)
-                    #sparkline1.__init__()
-
-                    """
-                    update()
-                    init?
-                    sparkline1.y_bottom = 100.0
-                    sparkline1.y_top = 0.0
-                    """
-
-                    gc.collect()
-                    #sparkline1.y_top=0
-                    #sparkline1.y_bottom=30
-                    # add the sparkline into my_group
-                    #print(gc.mem_free())
-
-                    #print(value[0])
-
-                    max_value = max(value[0], key=lambda x: float(x[1]))
-                    #print("max", max_value[1])
-                    min_value = min(value[0], key=lambda x: float(x[1]))
-                    #print("min", min_value[1])
-                    """
-                    
-                    sparkline1.y_top = float(max_value[1])
-
-                    sparkline1.y_bottom = float(min_value[1])
-                    """
-                    for item in value[0]:
-                        #print(float(item[1]))
-                        sparkline1.add_value(float(item[1]), update=False)
+                        display.auto_refresh = False
+                        """  
+                        pyportal.splash.remove(sparkline1)
                         gc.collect()
-                    #display.show(pyportal.splash)
-                   # print(sparkline1.values())
-                    print("min spartlines", min(sparkline1.values()))
-                    GRAPH_LO_LABEL.text = f"%.*f %s" % (
-                        feed_info[sparkfeed_index][1], min(sparkline1.values()), feed_info[sparkfeed_index][2])
-                    print("max sparklines", max(sparkline1.values()))
-                    GRAPH_HI_LABEL.text = f"%.*f %s" % (
-                        feed_info[sparkfeed_index][1], max(sparkline1.values()), feed_info[sparkfeed_index][2])
-                    #print("bottom top")
-                    #print(sparkline1.y_bottom)
-                    #sparkline1.y_top = max(sparkline1.values())
+                        sparkline1 = Sparkline(
+                            width=335, height=85, max_items=len(value[0]), x=80, y=188, color=0x000000)
+                        """
+                        sparkline1.clear_values()  # doesnt clear top and bottom"
+                        #print(sparkline1.y_bottom)
+                        #sparkline1.__init__()
 
-                    #sparkline1.y_bottom = min(sparkline1.values())
-                   #print(sparkline1.y_top)
-                    #sparkline1.y_bottom = min(sparkline1.values())
-                    """
-                    sparkline1.y_max=15
-                    sparkline1.min_value=3
-                    sparkline1.max_value=20
-                    """
-                    sparkline1.update()
-                    display.auto_refresh = True
-                    GRAPH_LABEL.text = "{}: {} h R:{} h #:{:d}".format(
-                        feed_info[sparkfeed_index][3], len(value[0])*RESOLUTION/60, RESOLUTION/60, len(value[0]))
+                        """
+                        update()
+                        init?
+                        sparkline1.y_bottom = 100.0
+                        sparkline1.y_top = 0.0
+                        """
+
+                        gc.collect()
+                        #sparkline1.y_top=0
+                        #sparkline1.y_bottom=30
+                        # add the sparkline into my_group
+                        #print(gc.mem_free())
+
+                        #print(value[0])
+
+                        max_value = max(value[0], key=lambda x: float(x[1]))
+                        #print("max", max_value[1])
+                        min_value = min(value[0], key=lambda x: float(x[1]))
+                        #print("min", min_value[1])
+                        """
+                        
+                        sparkline1.y_top = float(max_value[1])
+
+                        sparkline1.y_bottom = float(min_value[1])
+                        """
+                        for item in value[0]:
+                            #print(float(item[1]))
+                            sparkline1.add_value(float(item[1]), update=False)
+                            gc.collect()
+                        #display.show(pyportal.splash)
+                    # print(sparkline1.values())
+                        print("min spartlines", min(sparkline1.values()))
+                        GRAPH_LO_LABEL.text = f"%.*f %s" % (
+                            feed_info[sparkfeed_index][1], min(sparkline1.values()), feed_info[sparkfeed_index][2])
+                        print("max sparklines", max(sparkline1.values()))
+                        GRAPH_HI_LABEL.text = f"%.*f %s" % (
+                            feed_info[sparkfeed_index][1], max(sparkline1.values()), feed_info[sparkfeed_index][2])
+                        #print("bottom top")
+                        #print(sparkline1.y_bottom)
+                        #sparkline1.y_top = max(sparkline1.values())
+
+                        #sparkline1.y_bottom = min(sparkline1.values())
+                    #print(sparkline1.y_top)
+                        #sparkline1.y_bottom = min(sparkline1.values())
+                        """
+                        sparkline1.y_max=15
+                        sparkline1.min_value=3
+                        sparkline1.max_value=20
+                        """
+                        sparkline1.update()
+                        display.auto_refresh = True
+                        GRAPH_LABEL.text = "{}: {} h R:{} h #:{:d}".format(
+                            feed_info[sparkfeed_index][3], len(value[0])*RESOLUTION/60, RESOLUTION/60, len(value[0]))
                 else:
                     if i>2:
                         b.label_color = 0xFFF499
@@ -410,4 +434,3 @@ while True:
     pyportal.splash.append(polygon)
     display.show(pyportal.splash) 
  """
-sparkline.add_value()
