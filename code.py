@@ -22,8 +22,8 @@ cwd = ("/"+__file__).rsplit('/', 1)[0]
 pyportal = PyPortal(
     json_path='data',
     status_neopixel=board.NEOPIXEL,
-    default_bg=cwd+"pyp_spark_qr.bmp",
-    debug=True
+    default_bg=cwd+"pyp_spark_qr.bmp"
+    #debug=True
 )
 
 # Adafruit IO Account
@@ -220,7 +220,6 @@ value = None
 pyportal.get_local_time()
 lastupdated = datetime.now()
 print("starting")
-now = time.localtime()
 firstrun=True
 reload=False #for reload button
 
@@ -299,7 +298,11 @@ while True:
                 if b.contains(touch):  # Test each button to see if it was pressed, set data source aand label and fetch data for  graph
                     gc.collect()
                     print(gc.mem_free())
-                    pyportal.play_file(soundBeep)
+                    if 0 <= i <= 4:  # Update sparkline, clear to be able to play sound
+                        sparkline1.clear_values()  # doesnt clear top and bottom"
+                    #print(sparkline1.y_bottom)
+                        gc.collect()
+                        pyportal.play_file(soundBeep)
                     if i < 3: #indicate what feed is pressed/shown                                  
                         b.label_color = 0x000000
                     if i == 0:
@@ -342,16 +345,13 @@ while True:
                         progress_bar.value = 0
                         pyportal.splash.append(progress_bar)
                         print(gc.mem_free())
-                        sparkline1.clear_values()  # doesnt clear top and bottom"
-                        #print(sparkline1.y_bottom)
-                        print(gc.mem_free())
                         GRAPH_LABEL.text = "Fetching {} {} h".format(
                                     feed_info[sparkfeed_index][3], HOURS)
                         DATA_SOURCE = "https://io.adafruit.com/api/v2/{0}/feeds/{1}/data/chart?X-AIO-Key={2}&end_time={3}&hours={4}&resolution={5}".format(
                             IO_USER, IO_FEEDS[sparkfeed_index], IO_KEY, ENDTIME, HOURS, RESOLUTION)
                         print(
                             "_____________________Get sparkline data____________________")
-                        #print(DATA_SOURCE)
+                        print(DATA_SOURCE)
                         value = pyportal.network.fetch_data(
                             DATA_SOURCE, json_path=['data'])
                         GRAPH_LABEL.text = f"# of records: {len(value[0])}"
