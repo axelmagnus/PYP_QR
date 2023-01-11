@@ -219,9 +219,13 @@ pyportal.show_QR(
 value = None
 pyportal.get_local_time()
 lastupdated = datetime.now()
-print("starting")
+now = time.localtime()
+sunrise = time.localtime(1673425876)
+print("sunrise", sunrise.tm_hour, ":", sunrise.tm_min)
 firstrun=True
 reload=False #for reload button
+
+#http://api.openweathermap.org/data/2.5/weather?q=Malmo, SE&appid=4acdd2457856e1ef6c064f1e928ea71e
 
 while True:
     oldnow = now
