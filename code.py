@@ -31,6 +31,7 @@ IO_USER = secrets['aio_username']
 IO_KEY = secrets['aio_key']
 REFRESH_TIME = 600  # seconds between refresh. should match sensors updatetime
 HOURS = 48  # how far back to go
+HOURS = 48  # how far back to go
 RESOLUTION = 120  # in minutes 1,2 30, 60, 120
 #maxdatapoints = HOURS//(RESOLUTION//60)# is it used?
 
@@ -92,7 +93,6 @@ WEATHER_LABELS = [
     Label(text_font, text="Min, Max", color=DATACOLOR,
           x=195, y=30, scale=1, background_tight=True),
 ]
-
 def show_weather():  # show forecast,
     #mintemp,maxtemp,act_temp=0
     #sunrise, sunset, description=None
