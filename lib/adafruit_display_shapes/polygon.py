@@ -87,7 +87,7 @@ class Polygon(displayio.TileGrid):
                     1,
                 )
         gc.collect()
-        print("x_offset y_offset wid hei, mem", x_offset,y_offset, width, height, gc.mem_free())
+        #print("x_offset y_offset wid hei, mem", x_offset,y_offset, width, height, gc.mem_free())
         super().__init__(
             self._bitmap, pixel_shader=self._palette, x=x_offset, y=y_offset
         )

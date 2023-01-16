@@ -72,8 +72,8 @@ STATUS_LABEL = Label(text_font, text=f"SSID: {secrets['ssid']}",
                      color=0x000000, x=80, y=108)
 GRAPH_LABEL = Label(text_font, text="Temp: 96 h",
                     color=0x000000, x=82, y=168)
-GRAPH_HI_LABEL = Label(text_font, text="---", color=0x000000, x=427, y=190)
-GRAPH_LO_LABEL = Label(text_font, text="---", color=0x000000, x=427, y=263)
+GRAPH_HI_LABEL = Label(text_font, text="---", color=0x000000, x=425, y=190)
+GRAPH_LO_LABEL = Label(text_font, text="---", color=0x000000, x=425, y=263)
 for label in DATA_LABELS:
     pyportal.splash.append(label)
 pyportal.splash.append(DATE_LABEL)
@@ -116,20 +116,22 @@ def show_weather():  # show forecast,
         weather_data[0]['city']['sunrise']+weather_data[0]['city']['timezone'])
     sunset = time.localtime(
         weather_data[0]['city']['sunset']+weather_data[0]['city']['timezone'])
+    forecast_time = time.localtime(weather_data[0]['list'][0]['dt'])
 
     try:
         rainml = weather_data[0]['list'][0]['rain']['3h']
     except:  #theres no  rain entry in the json
         print("except")
         rainml=0
-
     WEATHER_LABELS[2].text = "R: {:.0f} mm PoP: {:.0f}% Sunrise: {:d}:{:02d}".format(rainml, float(weather_data[0]['list'][0]['pop'])*100.0,  sunrise.tm_hour, sunrise.tm_min)
-    forecast_time = time.localtime(weather_data[0]['list'][0]['dt'])
+    del weather_data
+    gc.collect()
+    print(gc.mem_free())
     STATUS_LABEL.text = "Forecast:{:d} {:s} {:d}:{:02d} Sunset: {:d}:{:02d}".format(forecast_time.tm_mday, _MONTHNAMES[forecast_time.tm_mon],forecast_time.tm_hour,forecast_time.tm_min, sunset.tm_hour, sunset.tm_min)
     buttons[6].label = "Data"  # keep track of what is shown
 #TODO #4
 buttons = []
-TAB_BUTTON_HEIGHT = 73
+TAB_BUTTON_HEIGHT = 78
 TAB_BUTTON_WIDTH = 70
 # Main User Interface Buttons
 button_temp = Button(
@@ -237,7 +239,7 @@ button_weather = Button(
     x=0,  # Start after width of a button
     y=0,
     width=73,
-    height=70,
+    height=75,
     style=Button.ROUNDRECT,
     label="Weather",
     label_font=text_font,
@@ -313,7 +315,15 @@ while True:
             lastupdated = datetime.now()
             print("if...", lastupdated)
             # keep track of what is shown: #change forecast to data labels
-            if buttons[6].label == "Weather" and (reload or firstrun): #show feed data (reload)
+            #if buttons[6].label == "Weather" and 
+            if b.label == "Data" :#when updating data, change to that view (must append labels)
+                for label in WEATHER_LABELS:
+                    pyportal.splash.remove(label)
+                gc.collect()
+                for label in DATA_LABELS:
+                    pyportal.splash.append(label)
+                b.label = "Weather"
+            if b.label == "Weather": #show feed data (reload)
                 STATUS_LABEL.text ='Fetching data...'
                 progress_bar.value=0
                 pyportal.splash.append(progress_bar)
@@ -356,17 +366,12 @@ while True:
                 #lastupdated = min(lastupdated, datetime.now())#either it has been updaated from feed, firstrun or its now
                 print("last upd", lastupdated, "date now", datetime.now())
                 buttons[6].label = "Weather"  # keep track of what is shown
-            else:
+            else:#update weather
                 show_weather()
                 buttons[6].label = "Data"  # keep track of what is shown
             reload=False
-        #print("first:",firstrun)
-        if firstrun:#Fake touch so it shows a graaph, default, temp button
-            #touch = (10,12,20000) #for weather forecast #(62, 122, 10514) #init with temp
-            touch = ts.touch_point
-        else:
-            touch = ts.touch_point
- #           pyportal.splash.append(progress_bar)
+        
+        touch = ts.touch_point
 
         if touch:  # Only do this if the screen is touched, or fill buttons with names
             # loop with buttons using enumerate() to number each button group as i
@@ -423,8 +428,8 @@ while True:
                         reload=True
                         STATUS_LABEL.text = "Updating data..."
                     if 0<= i <=4:#Update sparkline
- #                       progress_bar.value = 0
-#                       pyportal.splash.append(progress_bar)
+                        progress_bar.value = 0
+                        pyportal.splash.append(progress_bar)
                         print("update sline", gc.mem_free())
                         GRAPH_LABEL.text = "Fetching {} {} h".format(
                                     feed_info[sparkfeed_index][3], HOURS)
@@ -443,11 +448,6 @@ while True:
                         gc.collect()
                         sparkline1 = Sparkline(
                             width=335, height=85, max_items=len(value[0]), x=80, y=188, color=0x000000)
-                        """
-
-                        #sparkline1.__init__()
-
-                        """
                         update()
                         init?
                         sparkline1.y_bottom = 100.0
@@ -470,12 +470,12 @@ while True:
                         #fill sparkline, progressbar
                         print("before add", gc.mem_free())
                         for i, item in enumerate(value[0]):
- #                           progress_bar.value = 100*(i+1)/len(value[0])
+                            progress_bar.value = 100*(i+1)/len(value[0])
                             sparkline1.add_value(float(item[1]), update=False)
 
                         #display.show(pyportal.splash)
                         # print(sparkline1.values())
-#                        pyportal.splash.remove(progress_bar)
+                        pyportal.splash.remove(progress_bar)
                         gc.collect()
                         GRAPH_LO_LABEL.text = f"%.*f%s" % (
                             feed_info[sparkfeed_index][1], min(sparkline1.values()), feed_info[sparkfeed_index][2])
