@@ -3,7 +3,7 @@
     "python.linting.pylintEnabled": false,
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingModuleSource": "none",
-        "reportMissingImports": false
+        "reportMissingImports": "none"
     },
 
 
