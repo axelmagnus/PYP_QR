@@ -28,7 +28,10 @@ TODO 2 buttons 48h, 96h
 TODO Filamentsvåg
 TODO 
 TODO 
-TODO 
+TODO sparklines
+
+github link and  project bundle at the top of the learn guides
+each guide project separate repo for easy cloning
 TODO 
 TODO 
 
