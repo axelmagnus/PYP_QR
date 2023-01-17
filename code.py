@@ -131,7 +131,7 @@ def show_weather():  # show forecast,
     buttons[6].label = "Data"  # keep track of what is shown
 #TODO #4
 buttons = []
-TAB_BUTTON_HEIGHT = 78
+TAB_BUTTON_HEIGHT = 79
 TAB_BUTTON_WIDTH = 70
 # Main User Interface Buttons
 button_temp = Button(
@@ -325,6 +325,7 @@ while True:
                 b.label = "Weather"
             if b.label == "Weather": #show feed data (reload)
                 STATUS_LABEL.text ='Fetching data...'
+                print()
                 progress_bar.value=0
                 pyportal.splash.append(progress_bar)
                 for i, feed in enumerate(IO_FEEDS):#fill datalabels

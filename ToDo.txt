@@ -1,0 +1,35 @@
+________________E________________________
+TODO Pyportal weatherstation changed for your city
+TODO Make a background in Gimp
+TODO Change position of weather data
+TODO Use a big font
+TODO Present your own feed data in new labels
+TODO Buttons to switch between the two views
+TODO QR code for public dashboard
+TODO Current time
+________________D________________________
+TODO Units, decimals for feeds (feed_info-list)
+TODO Forecast
+TODO 
+TODO 
+TODO 
+TODO 
+TODO For loops where its possible
+TODO Update feed data with a button
+TODO Update at regular intervals
+TODO (Try to  sync?)
+TODO Except for errors, restart
+____________________________
+TODO One Sparkline, smaller fonts, remake background
+TODO HI LO scale markings
+TODO progressbar
+TODO 3 more buttons, change sparklines
+TODO 2 buttons 48h, 96h
+TODO Filamentsvåg
+TODO 
+TODO 
+TODO 
+TODO 
+TODO 
+
+Links:
