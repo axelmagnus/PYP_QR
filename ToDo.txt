@@ -1,38 +1,33 @@
 ________________E________________________
+TODO Installera CircuitPython 8.0.0
+TODO Add secrets to .gitignore
+TODO Make one commit per issue resolved
 TODO Pyportal weatherstation changed for your city
-TODO Make a background in Gimp
-TODO Change position of weather data
+TODO Make a background in Google Slides/Gimp
+TODO Change position of weather data to fit new background
 TODO Use a big font
 TODO Present your own feed data in new labels
-TODO Buttons to switch between the two views
 TODO QR code for public dashboard
 TODO Current time
 ________________D________________________
 TODO Units, decimals for feeds (feed_info-list)
-TODO Forecast
-TODO 
-TODO 
-TODO 
-TODO 
+TODO Buttons to switch between two views
+TODO Forecast instead of weather
 TODO For loops where its possible
 TODO Update feed data with a button
+________________C________________________
 TODO Update at regular intervals
-TODO (Try to  sync?)
+TODO Sync update to data
+TODO Forecast + Pop, Rain, Sunrise, Sunset
+TODO Update forecast with update button
 TODO Except for errors, restart
-____________________________
+________________B________________________
 TODO One Sparkline, smaller fonts, remake background
 TODO HI LO scale markings
-TODO progressbar
+TODO progressbar while downloading feed
+________________A________________________
 TODO 3 more buttons, change sparklines
 TODO 2 buttons 48h, 96h
 TODO Filamentsvåg
-TODO 
-TODO 
-TODO sparklines
-
-github link and  project bundle at the top of the learn guides
-each guide project separate repo for easy cloning
-TODO 
-TODO 
 
 Links:
