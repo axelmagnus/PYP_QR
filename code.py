@@ -51,9 +51,9 @@ sparkfeed_index = 0  # which to show on the graph
 # speed up projects with lots of text by preloading the font!
 # pyportal.preload_font()
 
-# Helvetica-Oblique-17.bdf")  # "Orbitron_Bold_16.h")
+# LeagueSpartan-Bold-16.bdf")  # "Orbitron_Bold_16.h")
 text_font = bitmap_font.load_font("/fonts/Helvetica-Oblique-17.bdf")
-text_font.load_glyphs(b'M1234567890o.%')
+#text_font.load_glyphs(b'M1234567890o.%')
 DATACOLOR = 0x117766
 DATE_COLOR = 0x334455
 DATA_LABELS = [
