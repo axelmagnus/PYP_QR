@@ -3,14 +3,13 @@
     "python.linting.pylintEnabled": false,
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingModuleSource": "none",
-        "reportShadowedImports": "none"       
+        "reportShadowedImports": "none",
+        "reportMissingImports": "none"
     },
-
-
     "python.analysis.extraPaths": [
-        "/Users/axelmansson/.vscode/extensions/joedevivo.vscode-circuitpython-0.1.19-darwin-x64/boards/0x239A/0x8054",
-        "/Users/axelmansson/.vscode/extensions/joedevivo.vscode-circuitpython-0.1.19-darwin-x64/stubs",
-        "/Users/axelmansson/Library/Application Support/Code/User/globalStorage/joedevivo.vscode-circuitpython/bundle/20230114/adafruit-circuitpython-bundle-py-20230114/lib",
+        "/Users/axelmansson/.vscode/extensions/joedevivo.vscode-circuitpython-0.1.20-darwin-x64/boards/0x239A/0x8054",
+        "/Users/axelmansson/.vscode/extensions/joedevivo.vscode-circuitpython-0.1.20-darwin-x64/stubs",
+        "/Users/axelmansson/Library/Application Support/Code/User/globalStorage/joedevivo.vscode-circuitpython/bundle/20230302/adafruit-circuitpython-bundle-py-20230302/lib",
         "./lib"
     ],
     "circuitpython.board.version": "8.0.0-beta.6",
