@@ -55,11 +55,12 @@ pyportal = PyPortal(default_bg=None)
 ##pyportal.network.connect()
 
 # Get the weather data from OpenWeatherMap API
-"""    try:
-    weather_data = pyportal.network.fetch_data("http://api.openweathermap.org/data/2.5/forecast?q=Malmo, SE&appid=4acdd2457856e1ef6c064f1e928ea71e&cnt=8", json_path=[])  # 3 hour forecasts this is cnt*3=24 h
+try:
+    weather_data = pyportal.network.fetch_data(
+        "http://api.openweathermap.org/data/2.5/forecast?q=Malmo, SE&appid=4acdd2457856e1ef6c064f1e928ea71e&cnt=8", json_path=[])  # 3 hour forecasts this is cnt*3=24 h
     #print(weather_data[0])
     #weather_label.text = f"{weather_data['name']}: {weather_data['main']['temp']}°C"
-    
+
 except (ValueError, RuntimeError) as e:
     weather_label.text = "Error getting weather"
 
@@ -77,11 +78,10 @@ print(desc)
 del weather_data
 gc.collect()
 print(gc.mem_free())
-"""
+
 # Get the texttv data
 try:
-
-    """ texttv_response = pyportal.network.requests.get(texttv_url)
+    texttv_response = pyportal.network.requests.get(texttv_url)
     texttv_data = texttv_response.json()
     #print(texttv_data[0]["content_plain"])
     # Concatenate the strings and replace newlines
@@ -90,14 +90,9 @@ try:
     gc.collect()
     # Remove leading number 100
     content_plain = re.sub(r'^100\s*', '', content_plain)
-    print("content_plain b4", content_plain) """
-    content_plain = "SVT Täxt tårsdög 02 mar 2023                                                                                                                                                                                                               Nö skottlossning i Farsta i Stockholm                                           Skott mot lägenhetsdörr * Två gripna                     106                                                                    von der Leyen besöker                   president Biden i USA                            133                                                            Flicka allvarligt skadad i knivattack                                           Göteborgspolisen har gripit misstänkt                    110                                                            Jazzikonen Wayne Shorter är död - 150                                             Februari: Milt och rätt blåsigt 417f"
-    # change: content_plain = re.sub(r'\b\d{3}\b\s*', '** ', content_plain)
-    #content_plain = re.sub(r'(\d{3})\s*', '** ', content_plain)
-
-    #content_plain = re.sub(r'(\b\d{3}\b\s+)', '', content_plain)
-    #content_plain = re.sub(r'(?<!\d)\d{3}(?!\d)\s*', '** ', content_plain)
-    #print("content_plain", content_plain)
+    print("content_plain b4", content_plain)
+    """ 
+    content_plain = "SVT Täxt tårsdög 02 mar 2023                                                                                                                                                                                                               Nö skottlossning i Farsta i Stockholm                                           Skott mot lägenhetsdörr * Två gripna                     106                                                                    von der Leyen besöker                   president Biden i USA                            133                                                            Flicka allvarligt skadad i knivattack                                           Göteborgspolisen har gripit misstänkt                    110                                                            Jazzikonen Wayne Shorter är död - 150                                             Februari: Milt och rätt blåsigt 417f" """
     # Replace sequences of whitespace with a single space
     content_plain = re.sub(r'\s+', ' ', content_plain)
     #print(content_plain)
@@ -112,7 +107,7 @@ try:
     content_plain = content_plain.replace("å", "\u00E5")
     content_plain = content_plain.replace("ä", "\u00E4")
     content_plain = content_plain.replace("ö", "\u00F6") 
-    """
+     """
     print("ersatt", content_plain)
     text_label.full_text = content_plain
     print("text_label.text", text_label.text)
